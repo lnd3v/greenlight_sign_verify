@@ -1,0 +1,18 @@
+# Cargo.toml
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "tmp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "*"
+bip39 = { version = "*", features=["rand_core"] }
+gl-client = { git = "https://github.com/Blockstream/greenlight.git", features = [
+    "permissive",
+]}
+tokio = { version = "1", features = ["full"] }
+serde = "*"
+serde_json = "*"
+hex = "0.4"
