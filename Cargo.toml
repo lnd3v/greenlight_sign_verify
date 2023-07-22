@@ -2,7 +2,7 @@
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "tmp"
+name = "greenlight_sign_verify"
 version = "0.1.0"
 edition = "2021"
 
