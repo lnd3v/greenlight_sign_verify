@@ -1,6 +1,8 @@
+RS_FILES := $(shell find src -type f -name '*.rs')
+
 all: run
 
-./target/debug/tmp: ./src/main.rs
+./target/debug/tmp: $(RS_FILES)
 	cargo fmt
 	cargo build
 

@@ -1648,6 +1648,7 @@ dependencies = [
  "bip39",
  "gl-client",
  "hex",
+ "lightning",
  "rand",
  "serde",
  "serde_json",
