@@ -6,9 +6,10 @@ use bitcoin::util::bip32::ChildNumber;
 use bitcoin::util::bip32::ExtendedPrivKey;
 use bitcoin::util::key::Secp256k1;
 use gl_client::signer::Signer;
+use gl_client::tls::TlsConfig;
 use greenlight_init::GreenlightInit;
 
-// use lightning::util::message_signing::{sign, verify};
+use lightning::util::message_signing::{recover_pk, sign, verify};
 
 impl Greenlight {
     pub fn new(secret: Vec<u8>, node: gl_client::node::ClnClient) -> Greenlight {
@@ -18,12 +19,36 @@ impl Greenlight {
         }
     }
 
-    pub async fn sign_verify() {
-        // let msg = "Hello World!";
-        // let (pubkey, seckey) = sign::gen_keypair();
-        // let sig = sign(msg, &seckey);
-        // let verified = verify(&pubkey, msg, &sig);
-        // assert!(verified);
+    pub async fn sign_verify_wip(&mut self) {
+        // Work in progress. This is not working as expected yet.
+        let signer = Signer::new(
+            self._secret.clone(),
+            Network::Bitcoin,
+            TlsConfig::new().unwrap(),
+        )
+        .unwrap();
+        let key = Self::derive_bip32_key(
+            Network::Bitcoin,
+            &signer,
+            vec![
+                ChildNumber::from_hardened_idx(140).unwrap(),
+                ChildNumber::from(0),
+            ],
+        )
+        .expect("Could not get private key");
+        let node_id = self.get_node_id().await;
+        let seckey = key.private_key;
+        let pubkey_from_node_id = bitcoin::secp256k1::PublicKey::from_slice(&node_id).unwrap();
+        let msg = "Hello, World!";
+        let sig = sign(msg.as_bytes(), &seckey).unwrap();
+        let verified = verify(msg.as_bytes(), &sig, &pubkey_from_node_id);
+        let recovered_pubkey = recover_pk(msg.as_bytes(), &sig).unwrap();
+        println!(
+            "Our node id                      : {}",
+            self.get_node_id_as_hex().await
+        );
+        println!("Message signed by                : {}", recovered_pubkey);
+        println!("Signature pubkey matches node id : {}", verified);
     }
 
     fn derive_bip32_key(
@@ -36,14 +61,19 @@ impl Greenlight {
             .map_err(|e| anyhow!(e))
     }
 
-    pub async fn get_node_id(&mut self) -> String {
-        let info = self
+    pub async fn get_node_id(&mut self) -> Vec<u8> {
+        let id = self
             .node
             .getinfo(cln::GetinfoRequest::default())
             .await
-            .expect("LJKH")
-            .into_inner();
-        hex::encode(&info.id)
+            .expect("Could not get node id")
+            .into_inner()
+            .id;
+        id
+    }
+
+    pub async fn get_node_id_as_hex(&mut self) -> String {
+        hex::encode(&self.get_node_id().await)
     }
 }
 
@@ -58,6 +88,5 @@ async fn main() {
     let mut init = GreenlightInit::new(secret.clone());
     let node = init.run().await;
     let mut gl = Greenlight::new(secret.clone(), node);
-    let id = gl.get_node_id().await;
-    println!("{}", id);
+    gl.sign_verify_wip().await;
 }
